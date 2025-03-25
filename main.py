@@ -2,8 +2,17 @@
 # -*- coding: utf-8 -*-
 
 """
-Storage Stats - Disk Space Analyzer for macOS
-Main application entry point
+Storage Stats - Disk Space Analyzer for macOS.
+
+This application allows users to analyze disk usage on their computer, 
+identifying large files, duplicate files, and providing recommendations
+for freeing up space. It features a modern UI built with PyQt6 for 
+visualizing storage data.
+
+Typical usage:
+    $ python3 main.py
+    $ python3 main.py --path /path/to/scan
+    $ python3 main.py --debug
 """
 
 import sys
@@ -23,9 +32,17 @@ from src.ui.main_window import MainWindow
 from src.core.scanner import DiskScanner
 from src.core.analyzer import DataAnalyzer
 
-# Define logging configuration function
 def configure_logging(log_level=logging.INFO):
-    """Configure application logging"""
+    """
+    Configure application logging with appropriate handlers and formatting.
+    
+    Args:
+        log_level (int): The logging level to use (e.g., logging.DEBUG, 
+                         logging.INFO). Defaults to logging.INFO.
+    
+    Returns:
+        None
+    """
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(
         level=log_level,
@@ -41,11 +58,15 @@ def configure_logging(log_level=logging.INFO):
 
 class EnhancedMainWindow(MainWindow):
     """
-    Enhanced version of the main window that ensures signals are correctly connected
-    and components are initialized in the right order.
+    Enhanced version of the MainWindow with improved signal handling.
+    
+    This subclass ensures that all signals are correctly connected and
+    components are initialized in the right order, preventing segmentation
+    faults and other issues that can occur with PyQt signal/slot connections.
     """
     
     def __init__(self):
+        """Initialize the EnhancedMainWindow with extra safety measures."""
         logging.info("Initializing EnhancedMainWindow")
         
         # Call parent constructor
@@ -55,7 +76,12 @@ class EnhancedMainWindow(MainWindow):
         self._ensure_signals_connected()
         
     def _ensure_signals_connected(self):
-        """Ensure that all scanner signals are correctly connected"""
+        """
+        Ensure that all scanner signals are correctly connected to their slots.
+        
+        This method reconnects all signal/slot connections for the scanner
+        to prevent parameter mismatches and ensure proper event handling.
+        """
         logging.info("Ensuring scanner signals are correctly connected")
         
         # Get scanner instance
@@ -82,14 +108,27 @@ class EnhancedMainWindow(MainWindow):
             logging.error(f"Error reconnecting scanner signals: {e}", exc_info=True)
 
 def parse_args():
-    """Parse command line arguments"""
+    """
+    Parse command line arguments for the application.
+    
+    Returns:
+        argparse.Namespace: The parsed command line arguments.
+    """
     parser = argparse.ArgumentParser(description="Storage Stats - Disk Space Analyzer")
     parser.add_argument("--path", help="Path to scan")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     return parser.parse_args()
 
 def main():
-    """Main entry point"""
+    """
+    Main entry point for the Storage Stats application.
+    
+    This function initializes the application, configures logging,
+    creates the main window, and starts the event loop.
+    
+    Returns:
+        int: The application exit code.
+    """
     # Parse command line arguments
     args = parse_args()
     

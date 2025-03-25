@@ -3,7 +3,25 @@
 
 """
 Storage Stats - Disk Space Analyzer
-Scanner module for traversing file system and collecting data
+Scanner Module
+
+This module provides functionality for traversing the file system and collecting data
+about files and directories. It is designed to be efficient with large file systems
+through the use of multithreading and optimized traversal algorithms.
+
+The primary class, DiskScanner, emits signals for progress tracking and returns
+detailed information about the scanned files and directories, including sizes,
+timestamps, and optionally file hashes for duplicate detection.
+
+Classes:
+    FileInfo: Container for file metadata (size, timestamps, hash, etc.)
+    DiskScanner: Main scanner class with file system traversal functionality
+
+Signals (DiskScanner):
+    scan_started: Emitted when a scan begins (path)
+    scan_progress: Emitted periodically during scan (current, total, current_path)
+    scan_finished: Emitted when scan is complete (result_dict)
+    scan_error: Emitted when an error occurs (error_message)
 """
 
 import os

@@ -118,6 +118,13 @@ Get personalized suggestions for freeing up disk space:
 - Old files cleanup suggestions
 - Temporary files cleanup recommendations
 
+## Architecture Documentation
+
+For developers interested in understanding the application architecture:
+
+- View the [Architecture Documentation](src/resources/docs/architecture.md) for a visual diagram and explanation of how components interact
+- See the [Project Structure Documentation](src/resources/docs/project_structure.md) for a breakdown of the project's directory structure and purpose of each file
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
