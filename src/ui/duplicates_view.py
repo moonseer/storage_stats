@@ -159,6 +159,17 @@ class DuplicatesView(QWidget):
             self.copy_to_clipboard_btn.setEnabled(False)
             return
         
+        # Add human-readable size fields to each group
+        for hash_key, group in self.duplicate_groups.items():
+            group['size_human'] = human_readable_size(group['size'])
+            group['wasted_space_human'] = human_readable_size(group['wasted_space'])
+            
+            # Ensure each file has the expected fields
+            for file_info in group['files']:
+                # Convert mtime to last_modified for compatibility with the tree view
+                if 'mtime' in file_info and 'last_modified' not in file_info:
+                    file_info['last_modified'] = file_info['mtime']
+        
         # Calculate statistics
         self.total_duplicates = sum(group['count'] for group in self.duplicate_groups.values())
         self.total_wasted_space = sum(group['wasted_space'] for group in self.duplicate_groups.values())

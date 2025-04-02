@@ -27,4 +27,10 @@ pyobjc-framework-Cocoa>=9.0; sys_platform == 'darwin'  # For macOS specific feat
 appdirs>=1.4.4  # For app directories management
 psutil>=5.9.0
 # hashlib-blake3>=0.3.1  # Optional, commented out as not critical for initial testing
-pyqtconfig>=0.1.1 
+pyqtconfig>=0.1.1
+
+# Testing
+pytest>=7.3.1
+pytest-qt>=4.2.0  # For Qt/PyQt specific testing
+pytest-mock>=3.10.0
+pytest-cov>=4.1.0  # For test coverage reports 

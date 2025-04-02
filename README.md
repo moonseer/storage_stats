@@ -132,3 +132,69 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Testing
+
+Storage Stats includes a comprehensive test suite that covers unit tests, integration tests, and UI tests. The tests are built using pytest and are organized in the `tests` directory.
+
+### Test Structure
+
+- `tests/unit/` - Unit tests for individual components
+- `tests/integration/` - Integration tests that verify components work together
+- `tests/ui/` - UI tests that verify the user interface works correctly
+
+### Running Tests
+
+You can run the tests using the included `run_tests.py` script:
+
+```bash
+# Run all tests
+python run_tests.py
+
+# Run only unit tests
+python run_tests.py --type unit
+
+# Run only integration tests
+python run_tests.py --type integration
+
+# Run only UI tests
+python run_tests.py --type ui
+
+# Run tests with verbose output
+python run_tests.py --verbose
+```
+
+Alternatively, you can run the tests directly with pytest:
+
+```bash
+# Run all tests
+pytest
+
+# Run tests with markers
+pytest -m unit
+pytest -m integration
+pytest -m ui
+
+# Run tests with verbose output
+pytest -v
+```
+
+### Test Coverage
+
+The test suite covers:
+
+1. **Core Utilities** - Tests for helper functions like `human_readable_size`
+2. **Scanner** - Tests for the file system scanner functionality
+3. **Analyzer** - Tests for the data analysis components
+4. **UI Components** - Tests for UI components like the dashboard view
+5. **Integration** - Tests that verify different components work together correctly
+
+### Adding New Tests
+
+When adding new functionality, please ensure you add appropriate tests. Tests should follow the naming convention:
+
+- Unit tests: `test_*.py` in the `tests/unit/` directory
+- Integration tests: `test_*.py` in the `tests/integration/` directory
+- UI tests: `test_*.py` in the `tests/ui/` directory
+
+All test functions should be prefixed with `test_` and should include docstrings describing what they test.

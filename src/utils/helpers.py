@@ -16,6 +16,7 @@ import platform
 import time
 import psutil
 import hashlib
+import math
 
 logger = logging.getLogger("StorageStats.Utils")
 
@@ -29,61 +30,63 @@ def get_platform_info():
         'processor': platform.processor()
     }
 
-def human_readable_size(size, binary=False, preferred_unit=None):
+def human_readable_size(size, preferred_unit=None, decimal_places=1):
     """
-    Convert a file size in bytes to a human-readable string representation.
+    Convert a file size in bytes to a human-readable string representation, using 1024-based units.
     
     Args:
         size (int): Size in bytes
-        binary (bool): If True, use binary units (KiB, MiB, etc.), otherwise use decimal (KB, MB, etc.)
         preferred_unit (str, optional): Force output in a specific unit (B, KB, MB, GB, TB, etc.)
+        decimal_places (int, optional): Number of decimal places to display (default: 1)
     
     Returns:
         str: Human-readable string representation of the size
     """
     if size < 0:
-        raise ValueError("Size cannot be negative")
+        return "Invalid size"
     
-    # For zero size, always return "0 B"
     if size == 0:
-        if preferred_unit:
-            return f"0 {preferred_unit}"
-        return "0 B"
+        # If the user forced a preferred unit, show "0" in that unit
+        return f"0 {preferred_unit or 'B'}"
     
-    if binary:
-        units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-        base = 1024
-    else:
-        units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-        base = 1000
-    
-    # If preferred unit is specified, convert directly to that unit
+    # Use 1024-based units: B, KB, MB, GB, TB, ...
+    units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    base = 1024
+
+    # If a preferred_unit is provided, compute directly
     if preferred_unit and preferred_unit in units:
         unit_index = units.index(preferred_unit)
         value = size / (base ** unit_index)
         
-        # Format the output
+        # For bytes, no decimals
         if unit_index == 0:
-            # For bytes, we don't show decimal places
-            return f"{int(value)} {units[unit_index]}"
+            return f"{int(value)} {preferred_unit}"
+        
+        # Handle decimal places
+        if decimal_places == 0:
+            # Round to nearest integer when no decimal places
+            return f"{round(value)} {preferred_unit}"
         else:
-            # For other units, we show 1 decimal place
-            return f"{value:.1f} {units[unit_index]}"
+            # Round to specified decimal places for preferred units
+            return f"{round(value, decimal_places):.{decimal_places}f} {preferred_unit}"
     
-    # Calculate the logarithm of the size with the appropriate base
-    # This gives us the unit index to use
-    unit_index = min(int(pow(abs(size), 1/3) // pow(base, 1/3)), len(units) - 1)
-    
-    # Calculate the value in the selected unit
+    # Otherwise, pick the unit index by size
+    unit_index = min(int(math.log(size, base)), len(units) - 1)
     value = size / (base ** unit_index)
     
-    # Format the output
+    # For bytes, skip decimal places
     if unit_index == 0:
-        # For bytes, we don't show decimal places
         return f"{int(value)} {units[unit_index]}"
+    
+    # Handle decimal places
+    if decimal_places == 0:
+        # Round to nearest integer when no decimal places
+        return f"{round(value)} {units[unit_index]}"
     else:
-        # For other units, we show 1 decimal place
-        return f"{value:.1f} {units[unit_index]}"
+        # Truncate to specified decimal places for automatic unit selection
+        factor = 10 ** decimal_places
+        truncated_value = math.floor(value * factor) / factor
+        return f"{truncated_value:.{decimal_places}f} {units[unit_index]}"
 
 def format_timestamp(timestamp):
     """Format a timestamp for display"""
@@ -94,9 +97,10 @@ def format_timestamp(timestamp):
         dt = timestamp
     else:
         try:
-            dt = datetime.fromtimestamp(timestamp)
+            # Use UTC for timestamp conversion
+            dt = datetime.utcfromtimestamp(timestamp)
         except (TypeError, ValueError):
-            return "Invalid timestamp"
+            return "N/A"
     
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -233,16 +237,19 @@ def is_path_excluded(path, exclude_paths):
     
     return False
 
-def categorize_file_by_type(extension):
+def categorize_file_by_type(file_path):
     """
     Categorize a file by its extension into broader categories.
     
     Args:
-        extension (str): File extension without the dot
+        file_path (str): File path or name with extension
     
     Returns:
         str: Category name
     """
+    # Extract the extension from the file path
+    _, extension = os.path.splitext(file_path)
+    
     # Remove the dot if it exists and convert to lowercase
     if extension.startswith('.'):
         extension = extension[1:]
@@ -270,7 +277,7 @@ def categorize_file_by_type(extension):
     
     # If no extension or not found in categories
     if not extension:
-        return "No Extension"
+        return "Other"
     
     return "Other"
 

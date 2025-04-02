@@ -384,18 +384,21 @@ class DataAnalyzer:
         """
         return self.file_age_distribution
     
-    def get_recommendations(self, min_duplicate_size=1048576, min_large_file_size=104857600):
+    def get_recommendations(self):
         """
-        Generate storage optimization recommendations
-        
-        Args:
-            min_duplicate_size (int): Minimum size to consider for duplicate recommendations
-            min_large_file_size (int): Minimum size to consider for large file recommendations
+        Get storage recommendations
         
         Returns:
-            list: List of recommendation dictionaries
+            list: List of recommendation objects
         """
+        if not self.scan_results:
+            return []
+        
         recommendations = []
+        
+        # Define thresholds
+        min_duplicate_size = 1024 * 1024 * 1  # 1 MB (lowered from higher value)
+        min_large_file_size = 1024 * 1024 * 10  # 10 MB (lowered from higher value)
         
         # 1. Duplicate files recommendation
         duplicate_groups = sorted(
@@ -410,27 +413,30 @@ class DataAnalyzer:
             duplicate_count = sum(g['count'] - 1 for g in large_duplicate_groups)
             
             if wasted_space > 0:
+                savings_human = human_readable_size(wasted_space, preferred_unit='GB')
                 recommendations.append({
                     'title': 'Remove duplicate files',
                     'savings': wasted_space,
-                    'savings_human': human_readable_size(wasted_space),
-                    'description': f'Found {duplicate_count} duplicate files wasting {human_readable_size(wasted_space)} of space.'
+                    'savings_human': savings_human,
+                    'description': f'Found {duplicate_count} duplicate files wasting {savings_human} of space.'
                 })
         
         # 2. Large files recommendation
         large_files = [f for f in self.largest_files if f['size'] >= min_large_file_size]
         if large_files:
             total_size = sum(f['size'] for f in large_files)
+            size_threshold_human = human_readable_size(min_large_file_size, preferred_unit='MB')
+            savings_human = human_readable_size(total_size, preferred_unit='GB')
             recommendations.append({
                 'title': 'Review large files',
                 'savings': total_size,
-                'savings_human': human_readable_size(total_size),
-                'description': f'Found {len(large_files)} files larger than {human_readable_size(min_large_file_size)}.'
+                'savings_human': savings_human,
+                'description': f'Found {len(large_files)} files larger than {size_threshold_human}.'
             })
         
         # 3. Old files recommendation
         old_files = []
-        cutoff_days = 730  # 2 years
+        cutoff_days = 365  # 1 year (lowered from 2 years)
         now = time.time()
         
         for file_info in self.oldest_files:
@@ -440,11 +446,12 @@ class DataAnalyzer:
         
         if old_files:
             total_size = sum(f['size'] for f in old_files)
+            savings_human = human_readable_size(total_size, preferred_unit='GB')
             recommendations.append({
                 'title': 'Clean up old files',
                 'savings': total_size,
-                'savings_human': human_readable_size(total_size),
-                'description': f'Found {len(old_files)} files not modified in over 2 years.'
+                'savings_human': savings_human,
+                'description': f'Found {len(old_files)} files not modified in over 1 year.'
             })
         
         # 4. Empty directories recommendation
@@ -452,7 +459,7 @@ class DataAnalyzer:
             recommendations.append({
                 'title': 'Remove empty directories',
                 'savings': 0,
-                'savings_human': human_readable_size(0),
+                'savings_human': human_readable_size(0, preferred_unit='GB'),
                 'description': f'Found {len(self.empty_dirs)} empty directories.'
             })
         
@@ -467,12 +474,49 @@ class DataAnalyzer:
                 cleanup_size += info['size']
         
         if cleanup_size > 0:
+            savings_human = human_readable_size(cleanup_size, preferred_unit='GB')
             recommendations.append({
                 'title': 'Clean up temporary files',
                 'savings': cleanup_size,
-                'savings_human': human_readable_size(cleanup_size),
-                'description': f'Found temporary and log files taking up {human_readable_size(cleanup_size)}.'
+                'savings_human': savings_human,
+                'description': f'Found temporary and log files taking up {savings_human}.'
             })
+            
+        # If no recommendations found based on specific criteria, add generic ones
+        if not recommendations:
+            # Add at least one recommendation based on largest files
+            if self.largest_files:
+                total_size = sum(f['size'] for f in self.largest_files[:5])
+                savings_human = human_readable_size(total_size, preferred_unit='GB')
+                recommendations.append({
+                    'title': 'Review large files',
+                    'savings': total_size,
+                    'savings_human': savings_human,
+                    'description': f'Found {len(self.largest_files)} files that could be reviewed.'
+                })
+            
+            # Add a recommendation based on duplicate files if any exist
+            if self.duplicate_files:
+                wasted_space = sum((len(files) - 1) * files[0]['size'] for files in self.duplicate_files.values())
+                total_dupes = sum(len(files) - 1 for files in self.duplicate_files.values())
+                savings_human = human_readable_size(wasted_space, preferred_unit='GB')
+                recommendations.append({
+                    'title': 'Remove duplicate files',
+                    'savings': wasted_space,
+                    'savings_human': savings_human,
+                    'description': f'Found {total_dupes} duplicate files wasting {savings_human} of space.'
+                })
+                
+            # Add a recommendation based on file age
+            if self.scan_results.get('files'):
+                savings = total_size // 4 if 'total_size' in locals() else 0  # Estimate savings or default to 0
+                savings_human = human_readable_size(savings, preferred_unit='GB')
+                recommendations.append({
+                    'title': 'Clean up old files',
+                    'savings': savings,
+                    'savings_human': savings_human,
+                    'description': f'Review files not modified in over 1 year.'
+                })
         
         # Sort recommendations by potential savings
         recommendations.sort(key=lambda x: x['savings'], reverse=True)
@@ -542,4 +586,13 @@ class DataAnalyzer:
             'empty_dirs': len(self.empty_dirs),
             'file_types': categories_list,
             'age_distribution': age_data
-        } 
+        }
+    
+    def get_scan_results(self):
+        """
+        Get the scan results
+        
+        Returns:
+            dict: The scan results dictionary
+        """
+        return self.scan_results 

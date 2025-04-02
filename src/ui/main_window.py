@@ -423,6 +423,9 @@ class MainWindow(QMainWindow):
         self.file_types_view = FileTypesView()
         self.recommendations_view = RecommendationsView()
         
+        # Connect dashboard scan button to the scan action
+        self.dashboard_view.scan_requested.connect(self._on_scan_action)
+        
         # Add tabs
         self.tab_widget.addTab(self.dashboard_view, "Dashboard")
         self.tab_widget.addTab(self.file_browser_view, "Files & Folders")
@@ -583,6 +586,11 @@ class MainWindow(QMainWindow):
         if results:
             # Update widget states
             self.scan_results = results
+            
+            # Process the scan results with the analyzer
+            logger.info("Processing scan results with analyzer")
+            self.analyzer.set_scan_results(results)
+            
             self.save_html_report_action.setEnabled(True)
             self.save_csv_report_action.setEnabled(True)
             self.save_text_report_action.setEnabled(True)
@@ -594,7 +602,7 @@ class MainWindow(QMainWindow):
             # Show message in status bar
             total_size = results.get("total_size", 0)
             total_files = results.get("total_files", 0)
-            status_msg = f"Scan completed: {human_readable_size(total_size)}, {total_files:,} files"
+            status_msg = f"Scan completed: {human_readable_size(total_size, preferred_unit='GB')}, {total_files:,} files"
             self.status_bar.showMessage(status_msg)
             
             # Update all tabs with the results
@@ -1104,7 +1112,7 @@ class MainWindow(QMainWindow):
 """)
             
             # Largest files section
-            largest_files = self.analyzer.get_largest_files(self.scan_results, limit=50)
+            largest_files = self.analyzer.get_largest_files(limit=50)
             if largest_files:
                 f.write("""
         <div class="section">
@@ -1141,7 +1149,7 @@ class MainWindow(QMainWindow):
 """)
             
             # Largest directories section
-            largest_dirs = self.analyzer.get_largest_directories(self.scan_results, limit=50)
+            largest_dirs = self.analyzer.get_largest_dirs(limit=50)
             if largest_dirs:
                 f.write("""
         <div class="section">
@@ -1177,7 +1185,7 @@ class MainWindow(QMainWindow):
 """)
             
             # File types section
-            file_types = self.analyzer.get_file_type_breakdown(self.scan_results)
+            file_types = self.analyzer.get_file_type_distribution()
             if file_types:
                 f.write("""
         <div class="section">
@@ -1215,7 +1223,7 @@ class MainWindow(QMainWindow):
 """)
             
             # Duplicate files section
-            duplicate_groups = self.analyzer.get_duplicate_files(self.scan_results)
+            duplicate_groups = self.analyzer.get_duplicate_files()
             if duplicate_groups:
                 f.write("""
         <div class="section">
@@ -1317,7 +1325,7 @@ class MainWindow(QMainWindow):
             writer.writerow([])
             
             # Write largest files
-            largest_files = self.analyzer.get_largest_files(self.scan_results, limit=50)
+            largest_files = self.analyzer.get_largest_files(limit=50)
             if largest_files:
                 writer.writerow(["Largest Files"])
                 writer.writerow(["Path", "Size", "Modified"])
@@ -1333,7 +1341,7 @@ class MainWindow(QMainWindow):
             writer.writerow([])
             
             # Write largest directories
-            largest_dirs = self.analyzer.get_largest_directories(self.scan_results, limit=50)
+            largest_dirs = self.analyzer.get_largest_dirs(limit=50)
             if largest_dirs:
                 writer.writerow(["Largest Directories"])
                 writer.writerow(["Path", "Size", "Files"])
@@ -1348,7 +1356,7 @@ class MainWindow(QMainWindow):
             writer.writerow([])
             
             # Write file types
-            file_types = self.analyzer.get_file_type_breakdown(self.scan_results)
+            file_types = self.analyzer.get_file_type_distribution()
             if file_types:
                 writer.writerow(["File Types"])
                 writer.writerow(["Type", "Size", "Count", "Percentage"])
@@ -1387,7 +1395,7 @@ class MainWindow(QMainWindow):
             report["summary"]["average_file_size_human"] = human_readable_size(avg_file_size)
         
         # Add largest files
-        largest_files = self.analyzer.get_largest_files(self.scan_results, limit=100)
+        largest_files = self.analyzer.get_largest_files(limit=100)
         if largest_files:
             report["largest_files"] = [
                 {
@@ -1401,7 +1409,7 @@ class MainWindow(QMainWindow):
             ]
         
         # Add largest directories
-        largest_dirs = self.analyzer.get_largest_directories(self.scan_results, limit=100)
+        largest_dirs = self.analyzer.get_largest_dirs(limit=100)
         if largest_dirs:
             report["largest_directories"] = [
                 {
@@ -1414,7 +1422,7 @@ class MainWindow(QMainWindow):
             ]
         
         # Add file types
-        file_types = self.analyzer.get_file_type_breakdown(self.scan_results)
+        file_types = self.analyzer.get_file_type_distribution()
         if file_types:
             report["file_types"] = {
                 file_type: {
@@ -1427,7 +1435,7 @@ class MainWindow(QMainWindow):
             }
         
         # Add duplicate files (summarized)
-        duplicate_groups = self.analyzer.get_duplicate_files(self.scan_results)
+        duplicate_groups = self.analyzer.get_duplicate_files()
         if duplicate_groups:
             # Calculate total wasted space
             wasted_space = sum(

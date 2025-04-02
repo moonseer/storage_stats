@@ -110,6 +110,8 @@ class DashboardView(QWidget):
         scan_button = QPushButton("Scan Directory")
         scan_button.setMinimumWidth(200)
         scan_button.clicked.connect(self.scan_requested.emit)
+        scan_button.setStatusTip("Scan a directory for storage analysis")
+        scan_button.setToolTip("Scan a directory for storage analysis")
         
         welcome_layout.addItem(QSpacerItem(20, 40))
         welcome_layout.addWidget(welcome_label)
@@ -199,19 +201,38 @@ class DashboardView(QWidget):
         # Add recommendations section
         recommendations_frame = QFrame()
         recommendations_frame.setFrameShape(QFrame.Shape.StyledPanel)
+        recommendations_frame.setObjectName("recommendationsFrame")  # Add an object name for styling
         recommendations_layout = QVBoxLayout(recommendations_frame)
         
         recommendations_label = QLabel("Quick Recommendations")
         recommendations_label.setFont(largest_files_font)  # Reuse font
+        recommendations_label.setObjectName("recommendationsLabel")  # Add an object name for styling
         
         self.recommendations_list = QLabel("Scan your disk to get recommendations")
         self.recommendations_list.setWordWrap(True)
         self.recommendations_list.setTextFormat(Qt.TextFormat.RichText)
+        self.recommendations_list.setObjectName("recommendationsList")  # Add an object name for styling
         
         recommendations_layout.addWidget(recommendations_label)
         recommendations_layout.addWidget(self.recommendations_list)
         
         dashboard_layout.addWidget(recommendations_frame)
+        
+        # Apply some CSS styling
+        self.setStyleSheet("""
+            QFrame#recommendationsFrame {
+                background-color: #f8f8f8;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+            QLabel#recommendationsLabel {
+                color: #333;
+                padding: 5px;
+            }
+            QLabel#recommendationsList {
+                color: #333;
+            }
+        """)
         
         # Add dashboard content to scroll layout
         scroll_layout.addWidget(self.dashboard_content)
@@ -253,44 +274,113 @@ class DashboardView(QWidget):
         # Update largest files
         largest_files = analyzer.get_largest_files(limit=10)
         if largest_files:
-            html = "<table width='100%'>"
-            html += "<tr><th align='left'>File</th><th align='right'>Size</th></tr>"
+            html = "<table width='100%' style='color:#333; border-collapse:collapse;'>"
+            html += "<tr><th align='left' style='padding:8px; border-bottom:1px solid #ddd;'>File</th><th align='right' style='padding:8px; border-bottom:1px solid #ddd;'>Size</th></tr>"
             for i, file_info in enumerate(largest_files):
                 # Alternate row colors
                 bg_color = "#f0f0f0" if i % 2 == 0 else "#ffffff"
-                html += f"<tr style='background-color:{bg_color};'>"
-                html += f"<td>{file_info['name']}</td>"
-                html += f"<td align='right'>{file_info['size_human']}</td>"
+                html += f"<tr style='background-color:{bg_color}; color:#333;'>"
+                # Use filename if available, otherwise use the basename from path
+                filename = file_info.get('filename', os.path.basename(file_info.get('path', '')))
+                html += f"<td style='padding:8px; border-bottom:1px solid #ddd;'>{filename}</td>"
+                
+                # Force size display in GB instead of using the auto-generated size_human
+                file_size = file_info.get('size', 0)
+                html += f"<td align='right' style='padding:8px; border-bottom:1px solid #ddd;'>{human_readable_size(file_size, preferred_unit='GB')}</td>"
+                
                 html += "</tr>"
             html += "</table>"
             self.largest_files_list.setText(html)
         else:
-            self.largest_files_list.setText("No files found")
+            self.largest_files_list.setText("<p style='color:#333;'>No files found</p>")
         
         # Update largest directories
         largest_dirs = analyzer.get_largest_dirs(limit=10)
         if largest_dirs:
-            html = "<table width='100%'>"
-            html += "<tr><th align='left'>Directory</th><th align='right'>Size</th></tr>"
+            html = "<table width='100%' style='color:#333; border-collapse:collapse;'>"
+            html += "<tr><th align='left' style='padding:8px; border-bottom:1px solid #ddd;'>Directory</th><th align='right' style='padding:8px; border-bottom:1px solid #ddd;'>Size</th></tr>"
             for i, dir_info in enumerate(largest_dirs):
                 # Alternate row colors
                 bg_color = "#f0f0f0" if i % 2 == 0 else "#ffffff"
-                html += f"<tr style='background-color:{bg_color};'>"
-                html += f"<td>{dir_info['name']}</td>"
-                html += f"<td align='right'>{dir_info['size_human']}</td>"
+                html += f"<tr style='background-color:{bg_color}; color:#333;'>"
+                # Get the directory name from the path
+                dirname = os.path.basename(dir_info.get('path', '')) or dir_info.get('path', '')
+                html += f"<td style='padding:8px; border-bottom:1px solid #ddd;'>{dirname}</td>"
+                
+                # Force size display in GB instead of using the auto-generated size_human
+                dir_size = dir_info.get('size', 0)
+                html += f"<td align='right' style='padding:8px; border-bottom:1px solid #ddd;'>{human_readable_size(dir_size, preferred_unit='GB')}</td>"
+                
                 html += "</tr>"
             html += "</table>"
             self.largest_dirs_list.setText(html)
         else:
-            self.largest_dirs_list.setText("No directories found")
+            self.largest_dirs_list.setText("<p style='color:#333;'>No directories found</p>")
         
         # Update recommendations
         recommendations = analyzer.get_recommendations()
         if recommendations:
-            html = "<ul>"
+            html = """
+            <style>
+                .recommendation-item {
+                    margin-bottom: 15px;
+                    padding: 12px;
+                    background-color: #e9f5ff;
+                    border-left: 4px solid #2196F3;
+                    border-radius: 4px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .recommendation-title {
+                    font-weight: bold;
+                    color: #0d47a1;
+                    font-size: 15px;
+                    margin-bottom: 8px;
+                }
+                .recommendation-savings {
+                    color: #2e7d32;
+                    font-weight: bold;
+                    display: inline-block;
+                    background-color: #e8f5e9;
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    margin-right: 5px;
+                }
+                .recommendation-description {
+                    color: #333;
+                    line-height: 1.4;
+                }
+            </style>
+            """
+            
             for rec in recommendations[:3]:  # Show top 3 recommendations
-                html += f"<li><b>{rec['title']}</b>: {rec['description']}</li>"
-            html += "</ul>"
+                # Access the correct property names in the recommendation objects
+                title = rec.get('title', 'Unknown recommendation')
+                description = rec.get('description', 'No description available')
+                
+                # Force savings display in GB if available
+                savings = rec.get('savings', 0)
+                savings_human = rec.get('savings_human', human_readable_size(savings, preferred_unit='GB') if savings else '')
+                
+                # Include the potential savings in the display if available
+                html += '<div class="recommendation-item">'
+                html += f'<div class="recommendation-title">{title}</div>'
+                
+                if savings_human and 'Found' in description:
+                    # Split description to insert savings badge
+                    parts = description.split(': ', 1)
+                    if len(parts) == 2:
+                        html += f'<div class="recommendation-description">{parts[0]}: <span class="recommendation-savings">{savings_human}</span> {parts[1]}</div>'
+                    else:
+                        html += f'<div class="recommendation-description"><span class="recommendation-savings">{savings_human}</span> {description}</div>'
+                else:
+                    html += f'<div class="recommendation-description">{description}</div>'
+                
+                html += '</div>'
+            
             self.recommendations_list.setText(html)
         else:
-            self.recommendations_list.setText("No recommendations available") 
+            self.recommendations_list.setText("""
+            <div style="color:#333; padding: 15px; text-align: center; background-color: #f5f5f5; border-radius: 4px;">
+                No recommendations available at this time
+            </div>
+            """) 

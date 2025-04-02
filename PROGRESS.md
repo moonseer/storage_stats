@@ -68,9 +68,9 @@ This document tracks the progress of developing the Storage Stats disk space ana
 - [x] Create test scripts for diagnosing issues
 - [x] Fix signal handling in scanner components
 - [x] Test file size display and calculation
-- [ ] Unit tests for core functionality
-- [ ] Integration tests
-- [ ] UI tests
+- [x] Unit tests for core functionality
+- [x] Integration tests
+- [x] UI tests
 - [ ] Performance testing
 
 ## Documentation
@@ -97,9 +97,21 @@ The application is now working properly with all critical issues resolved:
 4. **Dictionary Access Pattern** - Improved handling of dictionary access
 5. **UI Component References** - Fixed references to non-existent UI components
 
+## Recent Testing Improvements (March 28, 2025)
+
+The application now has comprehensive testing capabilities:
+
+1. **Test Structure** - Created a complete test structure with unit, integration, and UI tests
+2. **Helper Functions** - Added thorough tests for core utilities like human_readable_size
+3. **Scanner Tests** - Implemented tests for the file system scanner functionality
+4. **Analyzer Tests** - Created tests for the data analysis components
+5. **UI Testing** - Added tests for UI components like the dashboard view
+6. **Integration Tests** - Implemented tests that verify different components work together correctly
+7. **Test Runner** - Added a convenient script to run different types of tests
+
 ## Next Steps
 
-1. Complete remaining unit, integration, and UI tests
+1. Complete performance testing
 2. Develop user manual and comprehensive documentation
 3. Create installation package and distribution mechanism
 4. Consider adding more visualization options (charts/graphs)
